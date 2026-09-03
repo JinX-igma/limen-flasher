@@ -1,0 +1,11 @@
+.arduino15/
+.arduino-cli.yaml
+Arduino/
+.platformio-core/
+.pio/
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+.DS_Store
