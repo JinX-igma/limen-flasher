@@ -244,7 +244,7 @@ void callResponsesApi(const String &prompt) {
   client.setHandshakeTimeout(30);
   HTTPClient http;
   http.setConnectTimeout(15000);
-  http.setTimeout(90000);
+  http.setTimeout(60000);
   if (!http.begin(client, kResponsesUrl)) {
     Serial.println(F("Could not initialize the HTTPS request."));
     return;
