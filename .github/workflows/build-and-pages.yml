@@ -33,7 +33,7 @@ jobs:
       - name: Validate manifest and secret hygiene
         run: |
           python -m json.tool dist/manifest.json >/dev/null
-          if grep -R -E 'sk-[A-Za-z0-9_-]{16,}' --exclude-dir=.git .; then
+          if git grep -n -E 'sk-[A-Za-z0-9_-]{16,}'; then
             echo "Potential OpenAI key found" >&2
             exit 1
           fi
