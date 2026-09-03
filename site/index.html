@@ -7,36 +7,138 @@
     <title>Limen ESP32 Codex 烧录器</title>
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     <style>
-      :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; background:#090d18; color:#edf2ff; }
+      :root { font-family:Inter,ui-sans-serif,system-ui,sans-serif; background:#090d18; color:#edf2ff; }
       body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; box-sizing:border-box; }
-      main { width:min(680px,100%); background:#11182b; border:1px solid #283455; border-radius:22px; padding:32px; box-sizing:border-box; box-shadow:0 24px 80px #0008; }
+      main { width:min(760px,100%); background:#11182b; border:1px solid #283455; border-radius:22px; padding:32px; box-sizing:border-box; box-shadow:0 24px 80px #0008; }
+      header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
       h1 { margin:0 0 10px; font-size:clamp(1.8rem,5vw,3rem); }
       p,li { color:#b9c5e5; line-height:1.65; }
       code { color:#d7e0ff; background:#202a46; border-radius:5px; padding:2px 6px; }
+      button { border:0; border-radius:10px; padding:11px 16px; font:inherit; font-weight:700; cursor:pointer; background:#6d8cff; color:#071029; }
+      #language-toggle { flex:0 0 auto; background:#202a46; color:#dce4ff; border:1px solid #3a4a76; }
       .install { margin:28px 0; }
       esp-web-install-button { --esp-tools-button-color:#6d8cff; --esp-tools-button-text-color:#071029; }
       .warning { border-left:3px solid #ffbf69; padding-left:14px; }
+      footer { margin-top:30px; padding-top:20px; border-top:1px solid #283455; }
+      .licenses { margin-top:14px; color:#8491b2; font-size:.78rem; }
+      .licenses summary { display:inline-block; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+      .licenses p,.licenses li { margin:.45rem 0; color:#8491b2; line-height:1.5; }
+      .licenses ul { margin:.35rem 0; padding-left:18px; }
       a { color:#91a7ff; }
+      @media (max-width:520px) { main { padding:24px; } header { align-items:center; } }
     </style>
   </head>
   <body>
     <main>
-      <h1>Limen ESP32 Codex</h1>
-      <p>在 Chrome 或 Edge 中通过 USB 将 OpenAI Responses API 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。</p>
+      <header>
+        <div>
+          <h1>Limen ESP32 Codex</h1>
+          <p data-i18n="intro">在 Chrome 或 Edge 中通过 USB 将 OpenAI Responses API 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。</p>
+        </div>
+        <button id="language-toggle" type="button" aria-label="Switch to English">English</button>
+      </header>
+
       <ol>
-        <li>连接开发板并点击“连接并烧录”。</li>
-        <li>首次启动后连接设备创建的 <code>Limen-Codex-XXXXXX</code> Wi-Fi，密码为 <code>limen-codex</code>。</li>
-        <li>打开 <code>http://192.168.4.1</code>，填写 Wi-Fi 与 OpenAI API key。</li>
-        <li>回到 115200 波特率串口，输入一行提示词开始使用。</li>
+        <li data-i18n-html="stepConnect">连接开发板并点击“连接并烧录”。</li>
+        <li data-i18n-html="stepWifi">首次启动后连接设备创建的 <code>Limen-Codex-XXXXXX</code> Wi-Fi，密码为 <code>limen-codex</code>。</li>
+        <li data-i18n-html="stepSetup">打开 <code>http://192.168.4.1</code>，填写 Wi-Fi 与 OpenAI API key。</li>
+        <li data-i18n-html="stepSerial">回到 115200 波特率串口，输入一行提示词开始使用。</li>
       </ol>
+
       <div class="install">
         <esp-web-install-button manifest="manifest.json">
-          <button slot="activate">连接并烧录</button>
-          <span slot="unsupported">当前浏览器不支持 Web Serial，请使用桌面版 Chrome 或 Edge。</span>
+          <button slot="activate" data-i18n="install">连接并烧录</button>
+          <span slot="unsupported" data-i18n="unsupported">当前浏览器不支持 Web Serial，请使用桌面版 Chrome 或 Edge。</span>
         </esp-web-install-button>
       </div>
-      <p class="warning">API key 会保存在设备 NVS 中。请使用独立项目 key 和低额度限制；任何可能落入他人手中的设备都应改用后端代理。</p>
-      <p><a href="https://github.com/JinX-igma/limen-esp32-codex-flasher">源码与命令行烧录说明</a></p>
+
+      <p class="warning" data-i18n="warning">API key 会保存在设备 NVS 中。请使用独立项目 key 和低额度限制；任何可能落入他人手中的设备都应改用后端代理。</p>
+
+      <footer>
+        <a href="https://github.com/JinX-igma/limen-esp32-codex-flasher" data-i18n="source">源码、命令行烧录与安全说明</a>
+        <details class="licenses">
+          <summary data-i18n="licenseSummary">许可证</summary>
+          <p data-i18n="licenseIntro">本页面、打包脚本和项目固件采用 MIT 许可证；固件内的第三方组件保留各自许可证。</p>
+          <ul>
+            <li><a href="https://github.com/esphome/esp-web-tools">ESP Web Tools</a> — Apache-2.0</li>
+            <li><a href="https://github.com/bblanchon/ArduinoJson">ArduinoJson</a> — MIT</li>
+            <li><a href="https://github.com/espressif/arduino-esp32">Arduino core for ESP32</a> — LGPL-2.1-or-later</li>
+            <li><a href="https://github.com/enkei0x/espai">ESPAI</a> — MIT (<span data-i18n="referenceOnly">仅作实现参考，未捆绑源码</span>)</li>
+          </ul>
+          <p>
+            <a href="LICENSE.txt" data-i18n="fullLicense">完整 MIT 许可证</a>
+            ·
+            <a href="THIRD_PARTY_NOTICES.md" data-i18n="thirdParty">第三方声明</a>
+          </p>
+        </details>
+      </footer>
     </main>
+
+    <script>
+      const copy = {
+        zh: {
+          lang: "zh-CN",
+          title: "Limen ESP32 Codex 烧录器",
+          toggle: "English",
+          toggleLabel: "Switch to English",
+          intro: "在 Chrome 或 Edge 中通过 USB 将 OpenAI Responses API 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。",
+          stepConnect: "连接开发板并点击“连接并烧录”。",
+          stepWifi: "首次启动后连接设备创建的 <code>Limen-Codex-XXXXXX</code> Wi-Fi，密码为 <code>limen-codex</code>。",
+          stepSetup: "打开 <code>http://192.168.4.1</code>，填写 Wi-Fi 与 OpenAI API key。",
+          stepSerial: "回到 115200 波特率串口，输入一行提示词开始使用。",
+          install: "连接并烧录",
+          unsupported: "当前浏览器不支持 Web Serial，请使用桌面版 Chrome 或 Edge。",
+          warning: "API key 会保存在设备 NVS 中。请使用独立项目 key 和低额度限制；任何可能落入他人手中的设备都应改用后端代理。",
+          licenseSummary: "许可证",
+          licenseIntro: "本页面、打包脚本和项目固件采用 MIT 许可证；固件内的第三方组件保留各自许可证。",
+          referenceOnly: "仅作实现参考，未捆绑源码",
+          fullLicense: "完整 MIT 许可证",
+          thirdParty: "第三方声明",
+          source: "源码、命令行烧录与安全说明"
+        },
+        en: {
+          lang: "en",
+          title: "Limen ESP32 Codex Flasher",
+          toggle: "中文",
+          toggleLabel: "切换到中文",
+          intro: "Flash an OpenAI Responses API client to ESP32, ESP32-S3, or ESP32-C3 over USB in Chrome or Edge.",
+          stepConnect: "Connect your development board, then click “Connect and flash”.",
+          stepWifi: "After the first boot, join the <code>Limen-Codex-XXXXXX</code> Wi-Fi network with password <code>limen-codex</code>.",
+          stepSetup: "Open <code>http://192.168.4.1</code> and enter your Wi-Fi credentials and OpenAI API key.",
+          stepSerial: "Return to a 115200-baud serial monitor and enter one prompt per line.",
+          install: "Connect and flash",
+          unsupported: "Web Serial is unavailable in this browser. Use desktop Chrome or Edge.",
+          warning: "The API key is stored in device NVS. Use a dedicated project key with a low spending limit; use a backend proxy for any device that could leave your control.",
+          licenseSummary: "Licenses",
+          licenseIntro: "This page, the packaging scripts, and the project firmware are MIT-licensed; third-party components in the firmware retain their own licenses.",
+          referenceOnly: "implementation reference only; no source bundled",
+          fullLicense: "Full MIT License",
+          thirdParty: "Third-party notices",
+          source: "Source, command-line flashing, and security guidance"
+        }
+      };
+
+      const toggle = document.querySelector("#language-toggle");
+      let language = localStorage.getItem("limen-language") || (navigator.language.startsWith("zh") ? "zh" : "en");
+
+      function renderLanguage(nextLanguage) {
+        language = nextLanguage;
+        const strings = copy[language];
+        document.documentElement.lang = strings.lang;
+        document.title = strings.title;
+        document.querySelectorAll("[data-i18n]").forEach((element) => {
+          element.textContent = strings[element.dataset.i18n];
+        });
+        document.querySelectorAll("[data-i18n-html]").forEach((element) => {
+          element.innerHTML = strings[element.dataset.i18nHtml];
+        });
+        toggle.textContent = strings.toggle;
+        toggle.setAttribute("aria-label", strings.toggleLabel);
+        localStorage.setItem("limen-language", language);
+      }
+
+      toggle.addEventListener("click", () => renderLanguage(language === "zh" ? "en" : "zh"));
+      renderLanguage(language);
+    </script>
   </body>
 </html>

@@ -28,6 +28,8 @@ def main() -> None:
     if output.exists():
         shutil.rmtree(output)
     shutil.copytree(root / "site", output)
+    shutil.copy2(root / "LICENSE", output / "LICENSE.txt")
+    shutil.copy2(root / "THIRD_PARTY_NOTICES.md", output / "THIRD_PARTY_NOTICES.md")
     firmware_output.mkdir(parents=True, exist_ok=True)
 
     platformio_homes = [root / ".platformio-core", Path.home() / ".platformio"]

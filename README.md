@@ -14,6 +14,8 @@ The model runs in OpenAI's cloud. The ESP32 is a secure HTTPS client; it does no
 
 Open the repository's GitHub Pages URL in desktop Chrome or Edge, connect the board, and click the install button. The installer detects the chip family and selects the correct build.
 
+The published installer automatically selects Chinese or English from the browser language and provides a language switch. The full project license and third-party notices are included with every packaged site.
+
 After the first boot:
 
 1. Join `Limen-Codex-XXXXXX` with password `limen-codex`.
