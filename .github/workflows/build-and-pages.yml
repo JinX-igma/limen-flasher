@@ -26,6 +26,12 @@ jobs:
           python-version: "3.12"
       - name: Install PlatformIO
         run: pip install "platformio==6.1.19"
+      - name: Generate a throwaway demo gateway CA
+        run: |
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 \
+            -subj "/CN=Limen Demo Build (not a real gateway)" \
+            -keyout /tmp/demo.key -out /tmp/demo.crt
+          python scripts/embed_gateway_ca.py /tmp/demo.crt
       - name: Build all supported boards
         run: pio run
       - name: Package ESP Web Tools site
@@ -36,6 +42,10 @@ jobs:
         run: |
           if git grep -n -E 'sk-[A-Za-z0-9_-]{16,}'; then
             echo "Potential OpenAI key found" >&2
+            exit 1
+          fi
+          if git ls-files | grep -q '^include/gateway_root_ca\.h$'; then
+            echo "include/gateway_root_ca.h must never be committed" >&2
             exit 1
           fi
       - uses: actions/upload-artifact@v7

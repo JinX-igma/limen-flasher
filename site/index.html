@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <title>Limen ESP32 Codex 烧录器</title>
+    <title>Limen 烧录器</title>
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     <style>
       :root { font-family:Inter,ui-sans-serif,system-ui,sans-serif; background:#090d18; color:#edf2ff; }
@@ -32,8 +32,8 @@
     <main>
       <header>
         <div>
-          <h1>Limen ESP32 Codex</h1>
-          <p data-i18n="intro">在 Chrome 或 Edge 中通过 USB 将 OpenAI Responses API 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。</p>
+          <h1>Limen</h1>
+          <p data-i18n="intro">在 Chrome 或 Edge 中通过 USB 将 Limen Gateway 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。设备从不保存真实 OpenAI API key。</p>
         </div>
         <button id="language-toggle" type="button" aria-label="Switch to English">English</button>
       </header>
@@ -41,7 +41,7 @@
       <ol>
         <li data-i18n-html="stepConnect">连接开发板并点击“连接并烧录”。</li>
         <li data-i18n-html="stepWifi">首次启动后连接设备创建的 <code>Limen-Codex-XXXXXX</code> Wi-Fi，密码为 <code>limen-codex</code>。</li>
-        <li data-i18n-html="stepSetup">打开 <code>http://192.168.4.1</code>，填写 Wi-Fi 与 OpenAI API key。</li>
+        <li data-i18n-html="stepSetup">打开 <code>http://192.168.4.1</code>，填写 Wi-Fi、网关地址与设备令牌（由网关运营者签发，而非 OpenAI API key）。</li>
         <li data-i18n-html="stepSerial">回到 115200 波特率串口，输入一行提示词开始使用。</li>
       </ol>
 
@@ -52,7 +52,7 @@
         </esp-web-install-button>
       </div>
 
-      <p class="warning" data-i18n="warning">API key 会保存在设备 NVS 中。请使用独立项目 key 和低额度限制；任何可能落入他人手中的设备都应改用后端代理。</p>
+      <p class="warning" data-i18n="warning">设备只保存网关签发的可撤销令牌，而不是真实 OpenAI API key；该令牌可在不影响其他设备的情况下随时撤销。</p>
 
       <footer>
         <a href="https://github.com/JinX-igma/limen-esp32-codex-flasher" data-i18n="source">源码、命令行烧录与安全说明</a>
@@ -78,17 +78,17 @@
       const copy = {
         zh: {
           lang: "zh-CN",
-          title: "Limen ESP32 Codex 烧录器",
+          title: "Limen 烧录器",
           toggle: "English",
           toggleLabel: "Switch to English",
-          intro: "在 Chrome 或 Edge 中通过 USB 将 OpenAI Responses API 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。",
+          intro: "在 Chrome 或 Edge 中通过 USB 将 Limen Gateway 客户端烧录到 ESP32、ESP32-S3 或 ESP32-C3。设备从不保存真实 OpenAI API key。",
           stepConnect: "连接开发板并点击“连接并烧录”。",
           stepWifi: "首次启动后连接设备创建的 <code>Limen-Codex-XXXXXX</code> Wi-Fi，密码为 <code>limen-codex</code>。",
-          stepSetup: "打开 <code>http://192.168.4.1</code>，填写 Wi-Fi 与 OpenAI API key。",
+          stepSetup: "打开 <code>http://192.168.4.1</code>，填写 Wi-Fi、网关地址与设备令牌（由网关运营者签发，而非 OpenAI API key）。",
           stepSerial: "回到 115200 波特率串口，输入一行提示词开始使用。",
           install: "连接并烧录",
           unsupported: "当前浏览器不支持 Web Serial，请使用桌面版 Chrome 或 Edge。",
-          warning: "API key 会保存在设备 NVS 中。请使用独立项目 key 和低额度限制；任何可能落入他人手中的设备都应改用后端代理。",
+          warning: "设备只保存网关签发的可撤销令牌，而不是真实 OpenAI API key；该令牌可在不影响其他设备的情况下随时撤销。",
           licenseSummary: "许可证",
           licenseIntro: "本页面、打包脚本和项目固件采用 MIT 许可证；固件内的第三方组件保留各自许可证。",
           referenceOnly: "仅作实现参考，未捆绑源码",
@@ -98,17 +98,17 @@
         },
         en: {
           lang: "en",
-          title: "Limen ESP32 Codex Flasher",
+          title: "Limen Flasher",
           toggle: "中文",
           toggleLabel: "切换到中文",
-          intro: "Flash an OpenAI Responses API client to ESP32, ESP32-S3, or ESP32-C3 over USB in Chrome or Edge.",
+          intro: "Flash a Limen Gateway client to ESP32, ESP32-S3, or ESP32-C3 over USB in Chrome or Edge. The device never holds a real OpenAI API key.",
           stepConnect: "Connect your development board, then click “Connect and flash”.",
           stepWifi: "After the first boot, join the <code>Limen-Codex-XXXXXX</code> Wi-Fi network with password <code>limen-codex</code>.",
-          stepSetup: "Open <code>http://192.168.4.1</code> and enter your Wi-Fi credentials and OpenAI API key.",
+          stepSetup: "Open <code>http://192.168.4.1</code> and enter your Wi-Fi credentials, your gateway URL, and the device token your gateway operator issued (not an OpenAI API key).",
           stepSerial: "Return to a 115200-baud serial monitor and enter one prompt per line.",
           install: "Connect and flash",
           unsupported: "Web Serial is unavailable in this browser. Use desktop Chrome or Edge.",
-          warning: "The API key is stored in device NVS. Use a dedicated project key with a low spending limit; use a backend proxy for any device that could leave your control.",
+          warning: "The device only holds a revocable token issued by your gateway, never a real OpenAI API key — it can be revoked at any time without affecting other devices.",
           licenseSummary: "Licenses",
           licenseIntro: "This page, the packaging scripts, and the project firmware are MIT-licensed; third-party components in the firmware retain their own licenses.",
           referenceOnly: "implementation reference only; no source bundled",

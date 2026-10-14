@@ -8,14 +8,13 @@
 #include <WiFiClientSecure.h>
 #include <time.h>
 
-#include "../include/openai_root_ca.h"
+#include "../include/gateway_root_ca.h"
 
 namespace {
 
-constexpr char kFirmwareVersion[] = "0.1.0";
-constexpr char kDefaultModel[] = "gpt-5.3-codex";
-constexpr char kResponsesUrl[] = "https://api.openai.com/v1/responses";
+constexpr char kFirmwareVersion[] = "0.2.0";
 constexpr char kSetupPassword[] = "limen-codex";
+constexpr char kConversationId[] = "device-main";
 constexpr uint16_t kDnsPort = 53;
 constexpr uint32_t kWifiTimeoutMs = 20000;
 constexpr uint32_t kRestartDelayMs = 1200;
@@ -27,8 +26,9 @@ DNSServer dnsServer;
 
 String wifiSsid;
 String wifiPassword;
-String apiKey;
-String model = kDefaultModel;
+String deviceToken;
+String gatewayUrl;
+bool allowInsecureTls = false;
 String serialBuffer;
 String setupApName;
 bool setupMode = false;
@@ -51,32 +51,37 @@ String htmlEscape(const String &value) {
   return escaped;
 }
 
-String maskedKey() {
-  if (apiKey.length() < 8) return apiKey.isEmpty() ? "not set" : "set";
-  return apiKey.substring(0, 3) + "..." + apiKey.substring(apiKey.length() - 4);
+String maskedToken() {
+  if (deviceToken.length() < 8) return deviceToken.isEmpty() ? "not set" : "set";
+  return deviceToken.substring(0, 3) + "..." + deviceToken.substring(deviceToken.length() - 4);
+}
+
+String normalizedGatewayUrl() {
+  String url = gatewayUrl;
+  while (url.endsWith("/")) url.remove(url.length() - 1);
+  return url;
 }
 
 void loadSettings() {
   preferences.begin("limen-codex", false);
   wifiSsid = preferences.getString("ssid", "");
   wifiPassword = preferences.getString("wifi_password", "");
-  apiKey = preferences.getString("api_key", "");
-  model = preferences.getString("model", kDefaultModel);
-  if (model.isEmpty()) model = kDefaultModel;
+  deviceToken = preferences.getString("device_token", "");
+  gatewayUrl = preferences.getString("gateway_url", "");
+  allowInsecureTls = preferences.getBool("allow_insecure", false);
 }
 
 bool settingsReady() {
-  return !wifiSsid.isEmpty() && !apiKey.isEmpty();
+  return !wifiSsid.isEmpty() && !deviceToken.isEmpty() && !gatewayUrl.isEmpty();
 }
 
 void printHelp() {
   Serial.println();
-  Serial.println(F("Limen Codex commands:"));
-  Serial.println(F("  <text>       send a prompt to the Responses API"));
-  Serial.println(F("  /status      show connection and model status"));
+  Serial.println(F("Limen commands:"));
+  Serial.println(F("  <text>       send a prompt to the gateway"));
+  Serial.println(F("  /status      show connection and gateway status"));
   Serial.println(F("  /setup       start the local setup portal"));
-  Serial.println(F("  /model ID    change the API model"));
-  Serial.println(F("  /clear yes   erase Wi-Fi and API credentials"));
+  Serial.println(F("  /clear yes   erase Wi-Fi and device credentials"));
   Serial.println(F("  /help        show this help"));
   Serial.println();
 }
@@ -96,8 +101,11 @@ void printStatus() {
     Serial.printf(" (%s, %s)", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
   }
   Serial.println();
-  Serial.printf("API key: %s\n", maskedKey().c_str());
-  Serial.printf("Model: %s\n", model.c_str());
+  Serial.printf("Device token: %s\n", maskedToken().c_str());
+  Serial.printf("Gateway: %s\n", gatewayUrl.c_str());
+  if (allowInsecureTls) {
+    Serial.println(F("WARNING: insecure TLS is enabled (same-LAN/demo only)."));
+  }
   if (setupMode) {
     Serial.printf("Setup portal: http://192.168.4.1 on %s\n", setupApName.c_str());
   }
@@ -105,16 +113,18 @@ void printStatus() {
 
 String setupPage(const String &message = "") {
   String page;
-  page.reserve(4200);
-  page += F(R"HTML(<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Limen Codex setup</title><style>
-body{font-family:system-ui,sans-serif;background:#0b1020;color:#edf2ff;margin:0;padding:24px}main{max-width:560px;margin:auto;background:#141b31;border:1px solid #2b365a;border-radius:18px;padding:28px}h1{margin-top:0}label{display:block;margin:18px 0 6px}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #48557d;border-radius:10px;background:#0d1428;color:#fff}button{margin-top:24px;width:100%;padding:13px;border:0;border-radius:10px;background:#6d8cff;color:#071029;font-weight:700}.note{color:#aab7db;font-size:.92rem}.message{background:#173b30;padding:10px;border-radius:8px}</style></head><body><main><h1>Limen Codex</h1>)HTML");
+  page.reserve(4600);
+  page += F(R"HTML(<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Limen setup</title><style>
+body{font-family:system-ui,sans-serif;background:#0b1020;color:#edf2ff;margin:0;padding:24px}main{max-width:560px;margin:auto;background:#141b31;border:1px solid #2b365a;border-radius:18px;padding:28px}h1{margin-top:0}label{display:block;margin:18px 0 6px}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #48557d;border-radius:10px;background:#0d1428;color:#fff}.checkbox-row{display:flex;align-items:center;gap:10px;margin-top:18px}.checkbox-row input{width:auto}button{margin-top:24px;width:100%;padding:13px;border:0;border-radius:10px;background:#6d8cff;color:#071029;font-weight:700}.note{color:#aab7db;font-size:.92rem}.warning{color:#ffb4b4;font-size:.9rem}.message{background:#173b30;padding:10px;border-radius:8px}</style></head><body><main><h1>Limen</h1>)HTML");
   if (!message.isEmpty()) page += "<p class=\"message\">" + htmlEscape(message) + "</p>";
-  page += F("<p>Configure Wi-Fi and the OpenAI Responses API. Credentials stay in this ESP32's NVS and are never added to the firmware repository.</p><form method=\"post\" action=\"/save\">");
+  page += F("<p>Configure Wi-Fi and your gateway. This device never holds a real OpenAI API key — only a revocable token your gateway operator issued it.</p><form method=\"post\" action=\"/save\">");
   page += "<label>Wi-Fi SSID</label><input name=\"ssid\" maxlength=\"63\" required value=\"" + htmlEscape(wifiSsid) + "\">";
   page += F("<label>Wi-Fi password</label><input name=\"wifi_password\" type=\"password\" maxlength=\"63\" placeholder=\"Leave blank to keep the saved password\">");
-  page += F("<label>OpenAI API key</label><input name=\"api_key\" type=\"password\" maxlength=\"220\" placeholder=\"Leave blank to keep the saved key\">");
-  page += "<label>Model</label><input name=\"model\" maxlength=\"64\" required value=\"" + htmlEscape(model) + "\">";
-  page += F("<button type=\"submit\">Save and restart</button></form><p class=\"note\">Direct device-side API keys can be extracted by someone with physical access. Use a scoped project key with a low spend limit; use a backend proxy for production devices.</p></main></body></html>");
+  page += F("<label>Device token (from your gateway operator)</label><input name=\"device_token\" type=\"password\" maxlength=\"220\" placeholder=\"Leave blank to keep the saved token\">");
+  page += "<label>Gateway URL</label><input name=\"gateway_url\" maxlength=\"128\" placeholder=\"https://gateway.local:8443\" value=\"" + htmlEscape(gatewayUrl) + "\">";
+  page += "<div class=\"checkbox-row\"><input type=\"checkbox\" id=\"allow_insecure\" name=\"allow_insecure\"" + String(allowInsecureTls ? " checked" : "") + "><label for=\"allow_insecure\" style=\"margin:0\">Allow insecure TLS</label></div>";
+  page += F("<p class=\"warning\">Only enable insecure TLS for a same-LAN demo gateway whose certificate you have not pinned. Never use it for an internet-facing gateway.</p>");
+  page += F("<button type=\"submit\">Save and restart</button></form><p class=\"note\">This token is scoped and revocable by your gateway operator at any time — it is not a real OpenAI API key, and losing it does not expose your account.</p></main></body></html>");
   return page;
 }
 
@@ -143,23 +153,27 @@ void startSetupPortal(const String &reason) {
   server.on("/save", HTTP_POST, []() {
     const String newSsid = server.arg("ssid");
     const String newPassword = server.arg("wifi_password");
-    const String newApiKey = server.arg("api_key");
-    const String newModel = server.arg("model");
+    const String newToken = server.arg("device_token");
+    const String newGatewayUrl = server.arg("gateway_url");
+    const bool newAllowInsecure = server.hasArg("allow_insecure");
 
-    if (newSsid.isEmpty() || (newApiKey.isEmpty() && apiKey.isEmpty()) || newModel.isEmpty()) {
-      server.send(400, "text/html; charset=utf-8", setupPage("SSID, model, and API key are required."));
+    if (newSsid.isEmpty() || (newToken.isEmpty() && deviceToken.isEmpty()) || newGatewayUrl.isEmpty()) {
+      server.send(400, "text/html; charset=utf-8",
+                  setupPage("SSID, gateway URL, and device token are required."));
       return;
     }
 
     const bool ssidChanged = newSsid != wifiSsid;
     wifiSsid = newSsid;
     if (!newPassword.isEmpty() || wifiPassword.isEmpty() || ssidChanged) wifiPassword = newPassword;
-    if (!newApiKey.isEmpty()) apiKey = newApiKey;
-    model = newModel;
+    if (!newToken.isEmpty()) deviceToken = newToken;
+    gatewayUrl = newGatewayUrl;
+    allowInsecureTls = newAllowInsecure;
     preferences.putString("ssid", wifiSsid);
     preferences.putString("wifi_password", wifiPassword);
-    preferences.putString("api_key", apiKey);
-    preferences.putString("model", model);
+    preferences.putString("device_token", deviceToken);
+    preferences.putString("gateway_url", gatewayUrl);
+    preferences.putBool("allow_insecure", allowInsecureTls);
     server.send(200, "text/html; charset=utf-8", setupPage("Saved. The device is restarting..."));
     restartAt = millis() + kRestartDelayMs;
   });
@@ -230,30 +244,32 @@ void callResponsesApi(const String &prompt) {
   }
 
   JsonDocument requestDocument;
-  requestDocument["model"] = model;
-  requestDocument["instructions"] = "You are Codex running as the reasoning service for an ESP32 device. Answer concisely unless the user asks for detail.";
   requestDocument["input"] = prompt;
-  requestDocument["max_output_tokens"] = 512;
-  requestDocument["store"] = false;
-  requestDocument["reasoning"]["effort"] = "low";
+  requestDocument["conversation"] = kConversationId;
   String payload;
   serializeJson(requestDocument, payload);
 
   WiFiClientSecure client;
-  client.setCACert(kOpenAiRootCa);
+  if (allowInsecureTls) {
+    client.setInsecure();
+    Serial.println(F("WARNING: skipping TLS certificate validation (insecure mode)."));
+  } else {
+    client.setCACert(kGatewayRootCa);
+  }
   client.setHandshakeTimeout(30);
   HTTPClient http;
   http.setConnectTimeout(15000);
   http.setTimeout(60000);
-  if (!http.begin(client, kResponsesUrl)) {
+  const String url = normalizedGatewayUrl() + "/v1/responses";
+  if (!http.begin(client, url)) {
     Serial.println(F("Could not initialize the HTTPS request."));
     return;
   }
 
-  http.addHeader("Authorization", "Bearer " + apiKey);
+  http.addHeader("Authorization", "Bearer " + deviceToken);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("User-Agent", "limen-esp32-codex/0.1.0");
-  Serial.printf("Codex (%s) is thinking...\n", model.c_str());
+  http.addHeader("User-Agent", "limen-esp32/" + String(kFirmwareVersion));
+  Serial.println(F("Asking the gateway..."));
   const int status = http.POST(payload);
   payload = "";
 
@@ -281,24 +297,22 @@ void callResponsesApi(const String &prompt) {
   const DeserializationError jsonError = deserializeJson(responseDocument, body);
   body = "";
   if (jsonError) {
-    Serial.printf("Could not parse API JSON: %s\n", jsonError.c_str());
+    Serial.printf("Could not parse gateway JSON: %s\n", jsonError.c_str());
     return;
   }
 
   if (status < 200 || status >= 300) {
-    const char *message = responseDocument["error"]["message"] | "Unknown API error";
-    Serial.printf("OpenAI API error (HTTP %d): %s\n", status, message);
+    const char *message = responseDocument["error"]["message"] | "Unknown gateway error";
+    Serial.printf("Gateway error (HTTP %d): %s\n", status, message);
     return;
   }
 
   const String answer = responseText(responseDocument);
   if (answer.isEmpty()) {
-    const char *state = responseDocument["status"] | "unknown";
-    const char *reason = responseDocument["incomplete_details"]["reason"] | "no output_text item";
-    Serial.printf("No answer text (status=%s, reason=%s).\n", state, reason);
+    Serial.println(F("No answer text in gateway response."));
     return;
   }
-  Serial.println(F("\nCodex:"));
+  Serial.println(F("\nGateway:"));
   Serial.println(answer);
   Serial.println();
 }
@@ -317,16 +331,6 @@ void handleCommand(String line) {
     Serial.println(F("Credentials erased. Restarting..."));
     delay(300);
     ESP.restart();
-  } else if (line.startsWith("/model ")) {
-    String requestedModel = line.substring(7);
-    requestedModel.trim();
-    if (requestedModel.isEmpty() || requestedModel.length() > 64) {
-      Serial.println(F("Invalid model ID."));
-    } else {
-      model = requestedModel;
-      preferences.putString("model", model);
-      Serial.printf("Model set to %s\n", model.c_str());
-    }
   } else if (line.startsWith("/")) {
     Serial.println(F("Unknown command. Type /help."));
   } else {
@@ -352,7 +356,7 @@ void readSerial() {
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.printf("\nLimen ESP32 Codex %s\n", kFirmwareVersion);
+  Serial.printf("\nLimen ESP32 %s\n", kFirmwareVersion);
   loadSettings();
   if (!settingsReady()) {
     startSetupPortal("First-run configuration required.");

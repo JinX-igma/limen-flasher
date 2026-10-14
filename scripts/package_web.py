@@ -72,7 +72,7 @@ def main() -> None:
         )
 
     manifest = {
-        "name": "Limen ESP32 Codex",
+        "name": "Limen",
         "version": args.version,
         "new_install_prompt_erase": True,
         "builds": builds,
